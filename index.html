@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Walls Wordle</title>
+
+<meta name="application-name" content="Walls Wordle">
+<meta name="description" content="Daily Wordle score tracker and leaderboard for the Walls group.">
+<meta name="theme-color" content="#0e0e0f">
+<meta name="background-color" content="#0e0e0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Walls Wordle">
+
+<meta name="msapplication-TileColor" content="#0e0e0f">
+<meta name="msapplication-tap-highlight" content="no">
+
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<link rel="manifest" href="manifest.json">
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════
+   DESIGN TOKENS
+══════════════════════════════════════════════ */
+:root {
+  --green:   #6aaa64;
+  --yellow:  #c9b458;
+  --gray:    #787c7e;
+  --bg:      #0e0e0f;
+  --surface: #1a1a1b;
+  --surface2: #222224;
+  --border:  #2e2e30;
+  --text:    #f0f0f0;
+  --muted:   #5a5a5e;
+  --gold:    #f5c842;
+  --silver:  #b0b8c1;
+  --bronze:  #cd7f45;
+  --red:     #e05c5c;
+  --admin-accent: #c9b458;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 30px 16px 60px;
+  padding-top: max(30px, env(safe-area-inset-top));
+  padding-bottom: max(60px, env(safe-area-inset-bottom));
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  background-image:
+    linear-gradient(rgba(106,170,100,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(106,170,100,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.screen { width: 100%; max-width: 520px; }
+.hidden { display: none !important; }
+
+/* ══════════════════════════════════════════════
+   SHARED HEADER
+══════════════════════════════════════════════ */
+.app-header {
+  text-align: center;
+  margin-bottom: 28px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.tile-row {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.tile {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.7rem; color: #fff; border-radius: 4px;
+  animation: tileIn 0.4s both;
+}
+.tile:nth-child(1){animation-delay:.05s}
+.tile:nth-child(2){animation-delay:.10s}
+.tile:nth-child(3){animation-delay:.15s}
+.tile:nth-child(4){animation-delay:.20s}
+.tile:nth-child(5){animation-delay:.25s}
+.tile:nth-child(6){animation-delay:.30s}
+@keyframes tileIn {
+  from { transform: scale(0.5) rotateX(90deg); opacity: 0; }
+  to   { transform: scale(1)   rotateX(0deg);  opacity: 1; }
+}
+.t-green  { background: var(--green); }
+.t-yellow { background: var(--yellow); }
+.t-gray   { background: var(--gray); }
+.header-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.9rem; letter-spacing: 5px;
+  color: var(--muted); text-transform: uppercase; margin-bottom: 2px;
+}
+.header-sub {
+  font-size: 0.65rem; letter-spacing: 3px;
+  color: var(--muted); text-transform: uppercase;
+}
+
+/* ══════════════════════════════════════════════
+   CARDS
+══════════════════════════════════════════════ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 26px 28px;
+}
+.card-title {
+  text-align: center; font-size: 0.72rem;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 20px;
+}
+
+/* ══════════════════════════════════════════════
+   PLAYER GRID (login)
+══════════════════════════════════════════════ */
+.player-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 8px; margin-bottom: 20px;
+}
+.player-btn {
+  padding: 10px 6px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text);
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem;
+  letter-spacing: 2px; cursor: pointer; text-transform: uppercase;
+  transition: border-color 0.15s, background 0.15s;
+}
+.player-btn:hover    { border-color: var(--gray); background: var(--surface2); }
+.player-btn.selected { border-color: var(--green); background: #152215; }
+
+/* ══════════════════════════════════════════════
+   FORM ELEMENTS
+══════════════════════════════════════════════ */
+.form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.form-group label {
+  font-size: 0.65rem; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--muted);
+}
+.form-group input {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); font-family: 'DM Mono', monospace;
+  font-size: 1rem; padding: 10px 14px; outline: none;
+  transition: border-color 0.15s; width: 100%;
+}
+.form-group input:focus { border-color: var(--gray); }
+
+.login-hint {
+  font-size: 0.72rem; color: var(--muted);
+  text-align: center; margin-bottom: 16px; line-height: 1.6;
+}
+.login-hint .hi { color: var(--yellow); font-weight: 500; }
+
+/* ══════════════════════════════════════════════
+   BUTTONS
+══════════════════════════════════════════════ */
+.btn-primary {
+  width: 100%; padding: 12px;
+  background: var(--green); border: none; border-radius: 8px;
+  color: white; font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.1rem; letter-spacing: 3px; text-transform: uppercase;
+  cursor: pointer; transition: background 0.15s, transform 0.1s;
+}
+.btn-primary:hover    { background: #5a9a54; }
+.btn-primary:active   { transform: scale(0.98); }
+.btn-primary:disabled { background: var(--gray); cursor: not-allowed; opacity: 0.5; }
+
+.btn-ghost {
+  width: 100%; padding: 9px;
+  background: none; border: 1px solid var(--border); border-radius: 8px;
+  color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.75rem;
+  letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
+  transition: border-color 0.15s, color 0.15s; margin-top: 10px;
+}
+.btn-ghost:hover { border-color: var(--gray); color: var(--text); }
+
+.err  { color: var(--red);   font-size: 0.78rem; text-align: center; margin-top: 10px; min-height: 16px; }
+.succ { color: var(--green); font-size: 0.78rem; text-align: center; margin-top: 10px; min-height: 16px; }
+
+/* ══════════════════════════════════════════════
+   TOP BAR (logged-in screens)
+══════════════════════════════════════════════ */
+.topbar {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+.topbar-left { line-height: 1.5; }
+.topbar-label {
+  font-size: 0.6rem; letter-spacing: 2px;
+  color: var(--muted); text-transform: uppercase;
+}
+.topbar-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem; letter-spacing: 3px;
+  color: var(--green);
+}
+.btn-small {
+  background: none; border: 1px solid var(--border); border-radius: 6px;
+  color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.65rem;
+  letter-spacing: 1.5px; text-transform: uppercase; padding: 6px 12px;
+  cursor: pointer; transition: border-color 0.15s, color 0.15s;
+}
+.btn-small:hover { border-color: var(--gray); color: var(--text); }
+
+.date-tag {
+  text-align: center; font-size: 0.62rem; letter-spacing: 2px;
+  color: var(--muted); text-transform: uppercase; margin-bottom: 18px;
+}
+
+/* ══════════════════════════════════════════════
+   TAB NAV
+══════════════════════════════════════════════ */
+.tab-nav {
+  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 4px; gap: 4px; margin-bottom: 20px;
+}
+.tab-btn {
+  padding: 9px; background: none; border: none; border-radius: 7px;
+  color: var(--muted); font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.tab-btn.active {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.tab-btn:hover:not(.active) { color: var(--text); }
+
+/* ══════════════════════════════════════════════
+   SCORE SUBMISSION TAB
+══════════════════════════════════════════════ */
+.score-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+}
+.score-btn {
+  aspect-ratio: 1; background: var(--gray); border: none; border-radius: 8px;
+  color: white; font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.6rem; cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.score-btn:hover  { background: var(--yellow); transform: scale(1.06); }
+.score-btn:active { background: var(--green);  transform: scale(0.95); }
+.score-note {
+  text-align: center; font-size: 0.65rem; color: var(--muted);
+  margin-top: 14px; line-height: 1.8; letter-spacing: 0.5px;
+}
+
+/* ══════════════════════════════════════════════
+   LEADERBOARD TAB
+══════════════════════════════════════════════ */
+.lb-col-headers {
+  display: grid;
+  grid-template-columns: 40px 1fr 80px 68px;
+  padding: 0 14px 8px;
+  font-size: 0.58rem; letter-spacing: 2px;
+  color: var(--muted); text-transform: uppercase;
+}
+.lb-col-headers .ch-r { text-align: right; }
+
+.lb-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 80px 68px;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 13px 14px;
+  margin-bottom: 8px;
+  transition: border-color 0.2s, transform 0.15s;
+  animation: rowIn 0.4s both;
+}
+.lb-row:hover { border-color: var(--gray); transform: translateX(2px); }
+.lb-row.first { border-color: var(--gold); background: #1c1a10; }
+
+.lb-row:nth-child(1) { animation-delay: .05s; }
+.lb-row:nth-child(2) { animation-delay: .10s; }
+.lb-row:nth-child(3) { animation-delay: .15s; }
+.lb-row:nth-child(4) { animation-delay: .20s; }
+.lb-row:nth-child(5) { animation-delay: .25s; }
+.lb-row:nth-child(6) { animation-delay: .30s; }
+.lb-row:nth-child(7) { animation-delay: .35s; }
+.lb-row:nth-child(8) { animation-delay: .40s; }
+.lb-row:nth-child(9) { animation-delay: .45s; }
+.lb-row:nth-child(10){ animation-delay: .50s; }
+
+@keyframes rowIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.lb-rank {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem;
+  color: var(--muted); line-height: 1;
+}
+.lb-rank.gold   { color: var(--gold); }
+.lb-rank.silver { color: var(--silver); }
+.lb-rank.bronze { color: var(--bronze); }
+
+.lb-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.2rem; letter-spacing: 2px;
+}
+.lb-name.me { color: var(--green); }
+
+.lb-avg-wrap { text-align: right; }
+.lb-avg {
+  font-size: 1.1rem; font-weight: 500;
+  color: var(--green); letter-spacing: 1px;
+}
+.lb-avg.ok   { color: var(--yellow); }
+.lb-avg.bad  { color: var(--red); }
+.lb-avg-lbl {
+  font-size: 0.55rem; letter-spacing: 1px;
+  color: var(--muted); text-transform: uppercase;
+  display: block; margin-top: 1px;
+}
+
+.lb-bar-wrap { display: flex; align-items: center; justify-content: flex-end; }
+.lb-bar-track {
+  width: 56px; height: 5px;
+  background: var(--border); border-radius: 3px; overflow: hidden;
+}
+.lb-bar-fill {
+  height: 100%; border-radius: 3px;
+  background: var(--green); transition: width 0.8s ease;
+}
+.lb-bar-fill.ok  { background: var(--yellow); }
+.lb-bar-fill.bad { background: var(--red); }
+
+/* loading / error states inside leaderboard */
+.lb-loading {
+  text-align: center; padding: 30px 0;
+  font-size: 0.7rem; letter-spacing: 2px;
+  color: var(--muted); text-transform: uppercase;
+}
+.spinner {
+  width: 28px; height: 28px;
+  border: 3px solid var(--border); border-top-color: var(--green);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+  margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.lb-status {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 0.6rem; letter-spacing: 1.5px;
+  color: var(--muted); text-transform: uppercase;
+  padding: 10px 4px 0;
+}
+.pulse-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green); display: inline-block;
+  margin-right: 6px; animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.2} }
+.pulse-dot.err { background: var(--red); animation: none; }
+
+.lb-note {
+  font-size: 0.6rem; letter-spacing: 1px;
+  color: var(--muted); text-align: center;
+  line-height: 1.9; margin-top: 10px;
+}
+.lb-note span { color: var(--yellow); }
+
+/* ══════════════════════════════════════════════
+   ADMIN SCREENS
+══════════════════════════════════════════════ */
+.admin-link-wrap { text-align: center; margin-top: 16px; }
+.admin-link {
+  font-size: 0.62rem; color: #2a2a2c; letter-spacing: 1px;
+  text-transform: uppercase; cursor: pointer; border: none;
+  background: none; font-family: 'DM Mono', monospace;
+  transition: color 0.2s;
+}
+.admin-link:hover { color: var(--muted); }
+
+.admin-badge {
+  display: inline-block; background: var(--yellow); color: #0e0e0f;
+  font-size: 0.6rem; font-weight: bold; letter-spacing: 2px;
+  padding: 3px 8px; border-radius: 3px; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.admin-card {
+  background: var(--surface); border: 1px solid var(--yellow);
+  border-radius: 12px; padding: 26px 28px;
+}
+.admin-card .card-title { color: var(--yellow); }
+.admin-subtitle {
+  text-align: center; font-size: 0.68rem; color: var(--muted);
+  margin-bottom: 20px; letter-spacing: 1px; line-height: 1.6;
+}
+
+.reset-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.reset-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; gap: 10px;
+}
+.reset-name {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1rem;
+  letter-spacing: 2px; flex: 1;
+}
+.pw-badge {
+  font-size: 0.6rem; letter-spacing: 1px; text-transform: uppercase;
+  padding: 3px 7px; border-radius: 3px; white-space: nowrap;
+}
+.pw-set   { color: var(--green); border: 1px solid var(--green); }
+.pw-unset { color: var(--muted); border: 1px solid var(--border); }
+.btn-reset {
+  background: none; border: 1px solid var(--red); border-radius: 6px;
+  color: var(--red); font-family: 'DM Mono', monospace;
+  font-size: 0.62rem; font-weight: bold; letter-spacing: 1px;
+  text-transform: uppercase; padding: 5px 10px; cursor: pointer;
+  white-space: nowrap; transition: background 0.15s, color 0.15s;
+}
+.btn-reset:hover { background: var(--red); color: white; }
+
+/* ══════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════ */
+#toast {
+  visibility: hidden; min-width: 220px;
+  background: var(--text); color: var(--bg);
+  text-align: center; border-radius: 8px; padding: 12px 20px;
+  position: fixed; z-index: 999; left: 50%; top: 24px;
+  transform: translateX(-50%); font-weight: bold; font-size: 0.85rem;
+  opacity: 0; transition: opacity 0.3s, top 0.3s;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.7); pointer-events: none;
+  font-family: 'DM Mono', monospace; letter-spacing: 1px;
+}
+#toast.show { visibility: visible; top: 44px; opacity: 1; }
+
+/* ══════════════════════════════════════════════
+   STREAK BADGE
+══════════════════════════════════════════════ */
+.streak-badge {
+  font-size: 0.72rem; white-space: nowrap;
+  margin-left: 6px; vertical-align: middle;
+  opacity: 0.9;
+}
+
+/* ══════════════════════════════════════════════
+   SPARKLINE
+══════════════════════════════════════════════ */
+.sparkline-wrap {
+  display: flex; align-items: center; justify-content: flex-end;
+}
+.sparkline-wrap svg { display: block; }
+
+/* ══════════════════════════════════════════════
+   CONFETTI CANVAS
+══════════════════════════════════════════════ */
+#confetti-canvas {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none; z-index: 9998;
+}
+
+@media (max-width: 420px) {
+  .card, .admin-card { padding: 20px 16px; }
+  .score-grid { gap: 8px; }
+}
+</style>
+</head>
+<body>
+
+<div class="screen" id="screen-login">
+  <div class="app-header">
+    <div class="tile-row">
+      <div class="tile t-green">W</div>
+      <div class="tile t-yellow">O</div>
+      <div class="tile t-gray">R</div>
+      <div class="tile t-green">D</div>
+      <div class="tile t-yellow">L</div>
+      <div class="tile t-gray">E</div>
+    </div>
+    <div class="header-title">Walls Wordle</div>
+    <div class="header-sub">Daily · Weekly Rankings</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Select Your Name</div>
+    <div class="player-grid" id="player-grid"></div>
+    <div class="form-group">
+      <label for="pw-input">Password</label>
+      <input type="password" id="pw-input" placeholder="Enter your password" autocomplete="off" />
+    </div>
+    <p class="login-hint" id="login-hint">Select your name above to get started.</p>
+    <button class="btn-primary" id="login-btn" type="button" disabled>Enter</button>
+    <div class="err" id="login-err"></div>
+  </div>
+
+  <div class="admin-link-wrap">
+    <button class="admin-link" id="go-admin-btn" type="button">Admin</button>
+  </div>
+</div>
+
+<div class="screen hidden" id="screen-main">
+  <div class="app-header">
+    <div class="tile-row">
+      <div class="tile t-green">W</div>
+      <div class="tile t-yellow">O</div>
+      <div class="tile t-gray">R</div>
+      <div class="tile t-green">D</div>
+      <div class="tile t-yellow">L</div>
+      <div class="tile t-gray">E</div>
+    </div>
+    <div class="header-title">Walls Wordle</div>
+    <div class="header-sub">Daily · Weekly Rankings</div>
+  </div>
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-label">Logged in as</div>
+      <div class="topbar-name" id="topbar-name"></div>
+    </div>
+    <button class="btn-small" id="logout-btn" type="button">Log Out</button>
+  </div>
+
+  <div class="date-tag" id="date-tag"></div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" id="tab-submit-btn" type="button" onclick="switchTab('submit')">Submit Score</button>
+    <button class="tab-btn"        id="tab-board-btn"  type="button" onclick="switchTab('board')">Weekly</button>
+    <button class="tab-btn"        id="tab-season-btn" type="button" onclick="switchTab('season')">Season</button>
+    <button class="tab-btn"        id="tab-daily-btn"  type="button" onclick="switchTab('daily')">Daily</button>
+  </div>
+
+  <div id="tab-submit">
+    <div class="card">
+      <div class="card-title">Today's Score</div>
+      <div class="score-grid" id="score-buttons"></div>
+      <p class="score-note">
+        Tap your number of guesses (1–6)<br>
+        X = didn't get it &nbsp;·&nbsp; X records as 7 pts
+      </p>
+    </div>
+  </div>
+
+  <div id="tab-board" class="hidden">
+    <div class="lb-col-headers">
+      <span></span><span>Player</span>
+      <span class="ch-r">Avg</span>
+      <span></span>
+    </div>
+    <div id="lb-rows">
+      <div class="lb-loading"><div class="spinner"></div>Loading scores...</div>
+    </div>
+    <div class="lb-status" id="lb-status" style="display:none">
+      <div><span class="pulse-dot" id="lb-dot"></span><span id="lb-status-txt">Live</span></div>
+      <div id="lb-updated"></div>
+    </div>
+    <div class="lb-note" id="lb-note" style="display:none">
+      Lower avg = better &nbsp;·&nbsp; <span>X = 7 pts</span> &nbsp;·&nbsp; No submit = 8 pts &nbsp;·&nbsp; Auto-refreshes every 5 min
+    </div>
+    <div style="text-align:center;margin-top:14px">
+      <button onclick="toggleDebug()" style="background:none;border:1px solid #2e2e30;border-radius:6px;color:#2e2e30;font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:1px;padding:5px 12px;cursor:pointer" id="debug-toggle-btn">show debug</button>
+    </div>
+    <div id="debug-panel" style="display:none;margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;word-break:break-all;font-size:0.58rem;line-height:1.8;color:var(--muted)">
+      <div id="debug-content">Loading...</div>
+    </div>
+  </div>
+  
+  <div id="tab-season" class="hidden">
+    <div class="lb-col-headers">
+      <span></span><span>Player</span>
+      <span class="ch-r">Avg</span>
+      <span></span>
+    </div>
+    <div id="sn-rows">
+      <div class="lb-loading"><div class="spinner"></div>Loading season...</div>
+    </div>
+    <div class="lb-status" id="sn-status" style="display:none">
+      <div><span class="pulse-dot" id="sn-dot"></span><span id="sn-status-txt">Live</span></div>
+      <div id="sn-updated"></div>
+    </div>
+    <div class="lb-note" id="sn-note" style="display:none">
+      Season standings &nbsp;·&nbsp; Lower avg = better &nbsp;·&nbsp; Auto-refreshes every 5 min
+    </div>
+  </div>
+
+  <div id="tab-daily" class="hidden">
+    <div class="lb-col-headers">
+      <span></span><span>Player</span>
+      <span class="ch-r">Score</span>
+      <span></span>
+    </div>
+    <div id="daily-rows">
+      <div class="lb-loading"><div class="spinner"></div>Loading today's scores...</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="screen hidden" id="screen-admin-login">
+  <div class="app-header">
+    <div class="tile-row">
+      <div class="tile t-green">W</div>
+      <div class="tile t-yellow">O</div>
+      <div class="tile t-gray">R</div>
+      <div class="tile t-green">D</div>
+      <div class="tile t-yellow">L</div>
+      <div class="tile t-gray">E</div>
+    </div>
+    <div class="header-title">Walls Wordle</div>
+    <div class="header-sub">Admin Access</div>
+  </div>
+
+  <div class="admin-card">
+    <div style="text-align:center;margin-bottom:12px"><span class="admin-badge">Admin</span></div>
+    <div class="card-title">Admin Login</div>
+    <p class="admin-subtitle">Enter the admin password to manage player accounts.</p>
+    <div class="form-group">
+      <label for="admin-pw-input">Admin Password</label>
+      <input type="password" id="admin-pw-input" placeholder="Admin password" autocomplete="off" />
+    </div>
+    <button class="btn-primary" id="admin-login-btn" type="button">Enter</button>
+    <div class="err" id="admin-login-err"></div>
+    <button class="btn-ghost" id="admin-back-btn" type="button">← Back to Login</button>
+  </div>
+</div>
+
+<div class="screen hidden" id="screen-admin-panel">
+  <div class="app-header">
+    <div class="tile-row">
+      <div class="tile t-green">W</div>
+      <div class="tile t-yellow">O</div>
+      <div class="tile t-gray">R</div>
+      <div class="tile t-green">D</div>
+      <div class="tile t-yellow">L</div>
+      <div class="tile t-gray">E</div>
+    </div>
+    <div class="header-title">Walls Wordle</div>
+    <div class="header-sub">Admin Panel</div>
+  </div>
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-label">Logged in as</div>
+      <div class="topbar-name" style="color:var(--yellow)">Admin</div>
+    </div>
+    <button class="btn-small" id="admin-logout-btn" type="button">Log Out</button>
+  </div>
+
+  <div class="admin-card">
+    <div style="text-align:center;margin-bottom:12px"><span class="admin-badge">Password Manager</span></div>
+    <div class="card-title">Reset Player Passwords</div>
+    <p class="admin-subtitle">Resetting a password clears it — the player will create a new one on their next login.</p>
+    <div class="reset-list" id="reset-list"></div>
+    <div class="succ" id="admin-succ"></div>
+  </div>
+</div>
+
+<canvas id="confetti-canvas"></canvas>
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════
+// CONFIG  — edit these two lines
+// ════════════════════════════════════════════════
+var WEB_APP_URL   = "https://script.google.com/macros/s/AKfycbwWtCabUvxVWgmfuudAX4_a2VN8sCbfTjPXa5YF7uU4OHPgzqRPHDfaYhSxv8DOtI0IPA/exec";
+var SHEET_ID      = "1ygSsT4V7-3s9g6PDiqw2G_aBwVyx6k2OLJmfV0j5QBo";
+var ADMIN_PASSWORD = "Admin1234";  // ← change this!
+var PARTICIPANTS  = ["Adam","Broegan","Greg","Jake","Kristi","Linda","Madison","Sarah","Stacey","Tim"];
+var SALT          = "wordle_grp_2025";
+var REFRESH_MS    = 5 * 60 * 1000;
+
+// ════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════
+var selectedPlayer = null;
+var currentUser    = null;
+var toastTimer     = null;
+var refreshTimer   = null;
+var proxyIndex     = 0;
+var proxyIndexSn   = 0;
+var seasonLoaded   = false;
+var latestScores   = {}; 
+var weeklyRawData  = {}; 
+var currentDailyHeader = ""; 
+
+// Published CSV URL — works on ALL devices, no CORS, no login needed
+var PUBLISHED_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR1FYygrFcFDKjGlPWq8kEklo0H3OabddFOtqFXswlT8AyomfCNEh_VQ8Nz2xckEr0f788TFZLcWE_e/pub?output=csv";
+
+function getPublishedUrl() {
+  return PUBLISHED_CSV_URL + "&t=" + new Date().getTime();
+}
+
+function getLiveCsvUrl() {
+  var cb = new Date().getTime(); 
+  return "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/export?format=csv&nocache=" + cb;
+}
+
+var PROXIES = [
+  function(){ return getPublishedUrl(); },  // Direct published URL — no proxy needed
+  function(){ return WEB_APP_URL + "?action=read&t=" + new Date().getTime(); },
+  function(){ return "https://corsproxy.io/?" + encodeURIComponent(getLiveCsvUrl()); },
+  function(){ return "https://api.allorigins.win/raw?url=" + encodeURIComponent(getLiveCsvUrl()); }
+];
+
+// ════════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════════
+async function hashPw(pw) {
+  var buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pw + SALT));
+  return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,"0"); }).join("");
+}
+
+function getHash(n)       { return localStorage.getItem("wg_pw_"+n); }
+function saveHash(n,h)    { localStorage.setItem("wg_pw_"+n, h); }
+function clearHash(n)     { localStorage.removeItem("wg_pw_"+n); }
+function getSession()     { return localStorage.getItem("wg_session"); }
+function saveSession(n)   { localStorage.setItem("wg_session", n); }
+function clearSession()   { localStorage.removeItem("wg_session"); }
+
+function showToast(msg) {
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "show";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.className = ""; }, 3000);
+}
+
+function showScreen(id) {
+  ["screen-login","screen-main","screen-admin-login","screen-admin-panel"].forEach(function(s){
+    document.getElementById(s).classList.add("hidden");
+  });
+  document.getElementById(id).classList.remove("hidden");
+}
+
+function updateDate() {
+  var now = new Date();
+  var el = document.getElementById("date-tag");
+  if (el) el.textContent = "Today: " + now.toLocaleDateString([], {weekday:"long", month:"long", day:"numeric"});
+}
+
+// ════════════════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════════════════
+function buildPlayerGrid() {
+  var grid = document.getElementById("player-grid");
+  grid.innerHTML = "";
+  PARTICIPANTS.forEach(function(name) {
+    var btn = document.createElement("button");
+    btn.className = "player-btn";
+    btn.textContent = name;
+    btn.type = "button";
+    btn.onclick = function(){ selectPlayer(name, btn); };
+    grid.appendChild(btn);
+  });
+}
+
+function selectPlayer(name, btn) {
+  selectedPlayer = name;
+  document.querySelectorAll(".player-btn").forEach(function(b){ b.classList.remove("selected"); });
+  btn.classList.add("selected");
+  document.getElementById("pw-input").value = "";
+  document.getElementById("login-err").textContent = "";
+  var lb = document.getElementById("login-btn");
+  lb.disabled = false; lb.textContent = "Enter";
+  var hint = document.getElementById("login-hint");
+  hint.innerHTML = getHash(name)
+    ? 'Enter your password for <span class="hi">'+name+'</span>.'
+    : 'First time? Create a password for <span class="hi">'+name+'</span>.';
+  document.getElementById("pw-input").focus();
+}
+
+async function handleLogin() {
+  if (!selectedPlayer) { document.getElementById("login-err").textContent = "Please select your name first."; return; }
+  var pw = document.getElementById("pw-input").value;
+  var err = document.getElementById("login-err");
+  err.textContent = "";
+  if (pw.length < 3) { err.textContent = "Password must be at least 3 characters."; return; }
+  var btn = document.getElementById("login-btn");
+  btn.disabled = true; btn.textContent = "...";
+  try {
+    var h = await hashPw(pw);
+    var stored = getHash(selectedPlayer);
+    if (!stored) {
+      saveHash(selectedPlayer, h); saveSession(selectedPlayer);
+      enterApp(selectedPlayer);
+    } else if (stored === h) {
+      saveSession(selectedPlayer);
+      enterApp(selectedPlayer);
+    } else {
+      err.textContent = "Wrong password — try again.";
+      btn.disabled = false; btn.textContent = "Enter";
+    }
+  } catch(e) {
+    err.textContent = "Something went wrong. Try again.";
+    btn.disabled = false; btn.textContent = "Enter";
+  }
+}
+
+function handleLogout() {
+  clearSession();
+  currentUser = null; selectedPlayer = null;
+  clearInterval(refreshTimer);
+  seasonLoaded = false;
+  document.querySelectorAll(".player-btn").forEach(function(b){ b.classList.remove("selected"); });
+  document.getElementById("pw-input").value = "";
+  document.getElementById("login-err").textContent = "";
+  document.getElementById("login-hint").textContent = "Select your name above to get started.";
+  var lb = document.getElementById("login-btn");
+  lb.disabled = true; lb.textContent = "Enter";
+  showScreen("screen-login");
+}
+
+// ════════════════════════════════════════════════
+// MAIN APP
+// ════════════════════════════════════════════════
+function enterApp(name) {
+  currentUser = name;
+  showScreen("screen-main");
+  document.getElementById("topbar-name").textContent = name;
+  updateDate();
+  buildScoreButtons(name);
+  switchTab("submit");
+  // Start leaderboard refresh
+  clearInterval(refreshTimer);
+  seasonLoaded = false;
+  fetchLeaderboard();
+  refreshTimer = setInterval(function(){ fetchLeaderboard(); if(seasonLoaded){ seasonLoaded=false; fetchSeason(); } }, REFRESH_MS);
+}
+
+// ── Tabs ──
+function switchTab(tab) {
+  ["submit","board","season","daily"].forEach(function(t) {
+    var el = document.getElementById("tab-"+t);
+    var btn = document.getElementById("tab-"+t+"-btn");
+    if (el) el.classList.toggle("hidden", t !== tab);
+    if (btn) btn.classList.toggle("active", t === tab);
+  });
+  if (tab === "season" && !seasonLoaded) { fetchSeason(); }
+}
+
+function toggleDebug() {
+  var panel = document.getElementById("debug-panel");
+  var btn = document.getElementById("debug-toggle-btn");
+  if (panel.style.display === "none") {
+    panel.style.display = "block";
+    btn.style.color = "var(--muted)";
+    btn.style.borderColor = "var(--border)";
+    btn.textContent = "hide debug";
+    if (window._debugCSV) renderDebug(window._debugCSV, window._debugPlayers);
+  } else {
+    panel.style.display = "none";
+    btn.style.color = "#2e2e30";
+    btn.style.borderColor = "#2e2e30";
+    btn.textContent = "show debug";
+  }
+}
+
+// ── Score buttons ──
+function buildScoreButtons(name) {
+  var grid = document.getElementById("score-buttons");
+  grid.innerHTML = "";
+  [1,2,3,4,5,6,"X"].forEach(function(val) {
+    var btn = document.createElement("button");
+    btn.className = "score-btn"; btn.textContent = val; btn.type = "button";
+    btn.onclick = function(){ submitScore(name, val === "X" ? 7 : val, val); };
+    grid.appendChild(btn);
+  });
+}
+
+function submitScore(name, score, displayVal) {
+  var label = displayVal !== undefined ? displayVal : score;
+  showToast("Sending " + label + " for " + name + "...");
+  var url = WEB_APP_URL + "?name=" + encodeURIComponent(name) + "&score=" + score;
+  fetch(url, { mode: "no-cors" })
+    .then(function(){
+      showToast("\u2713 " + label + " recorded for " + name + "!");
+      if (score <= 2) { launchConfetti(); }
+      setTimeout(function(){
+        switchTab("daily");
+        fetchLeaderboard();
+      }, 1500); 
+    })
+    .catch(function(){ showToast("Error sending score. Please try again."); });
+}
+
+// ── Leaderboard Fetching ──
+function fetchLeaderboard() {
+  var url = PROXIES[proxyIndex]();
+  fetch(url)
+    .then(function(r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.text();
+    })
+    .then(function(csv) {
+      var trimmed = csv ? csv.trim() : "";
+      // Reject empty, HTML responses, or suspiciously short responses
+      if (!trimmed) throw new Error("Empty response");
+      if (trimmed.charAt(0) === "<") throw new Error("Got HTML, not CSV");
+      if (trimmed.length < 50) throw new Error("Response too short: " + trimmed.substring(0,50));
+      // Make sure we actually have player names in the data
+      var hasPlayer = false;
+      var lc = trimmed.toLowerCase();
+      if (lc.indexOf("adam") !== -1 || lc.indexOf("broegan") !== -1 || lc.indexOf("tim") !== -1) {
+        hasPlayer = true;
+      }
+      if (!hasPlayer) throw new Error("No player names found in response");
+      
+      var players = parseCSV(csv);
+      renderLeaderboard(players);
+      renderDaily();
+      window._debugCSV = csv.substring(0, 2000);
+      window._debugPlayers = players;
+      window._debugProxyIndex = proxyIndex;
+      renderDebug(csv, players);
+    })
+    .catch(function(err) {
+      if (proxyIndex < PROXIES.length - 1) {
+        proxyIndex++;
+        fetchLeaderboard();
+      } else {
+        proxyIndex = 0;
+        showLbError("Could not load scores. (" + (err.message||"unknown") + ")");
+      }
+    });
+}
+
+function parseCSV(text) {
+  var lines = text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n");
+  var rows = lines.map(function(line){
+    var res=[], cur="", inQ=false;
+    for(var i=0;i<line.length;i++){
+      var c=line[i];
+      if(c==='"'){inQ=!inQ;}
+      else if(c===','&&!inQ){res.push(cur.trim());cur="";}
+      else{cur+=c;}
+    }
+    res.push(cur.trim()); return res;
+  });
+
+  if (rows.length < 2) throw new Error("Sheet appears empty.");
+
+  // Identify Header Row
+  var hi = 0;
+  for(var i=0;i<Math.min(rows.length,5);i++){
+    if(rows[i].filter(function(c){return c!=="";}).length>1){hi=i;break;}
+  }
+  var headers = rows[hi].map(function(h){ return h.toLowerCase().trim(); });
+
+  var nameCol = -1;
+  for(var c=0;c<headers.length;c++){ 
+    if(headers[c].indexOf("name")!==-1 || headers[c].indexOf("player")!==-1){nameCol=c;break;} 
+  }
+  if (nameCol === -1) nameCol = 0;
+
+  // avgCol: only set if we actually find an avg/average header — never guess
+  var avgCol = -1;
+  for(var c=0;c<headers.length;c++){
+    if(headers[c].indexOf("week")!==-1&&headers[c].indexOf("avg")!==-1){avgCol=c;break;}
+    if(headers[c].indexOf("week")!==-1&&headers[c].indexOf("aver")!==-1){avgCol=c;break;}
+  }
+  if(avgCol===-1){
+    for(var c=0;c<headers.length;c++){
+      if(headers[c].indexOf("aver")!==-1){avgCol=c;break;}
+    }
+  }
+
+  // ════════════════════════════════════════════════
+  // ROBUST 2-WAY LOOKUP ALGORITHM 
+  // ════════════════════════════════════════════════
+  
+  var now = new Date();
+  var m = now.getMonth() + 1;
+  var d = now.getDate();
+  var dateVariants = [
+    m + "/" + d,
+    "0" + m + "/" + d,
+    m + "/" + (d < 10 ? "0" + d : d),
+    "0" + m + "/" + (d < 10 ? "0" + d : d)
+  ];
+  
+  var todayCol = -1;
+  currentDailyHeader = "Not Found"; 
+
+  // STEP 1: Find the Date Column
+  for (var r = 0; r < Math.min(rows.length, 10); r++) {
+    for (var c = 0; c < rows[r].length; c++) {
+      var cellStr = rows[r][c].toLowerCase().trim();
+      if (dateVariants.some(function(v) { return cellStr.indexOf(v) !== -1; })) {
+        todayCol = c;
+        currentDailyHeader = rows[r][c] + " (Found in Column " + (c+1) + ")";
+        break;
+      }
+    }
+    if (todayCol !== -1) break;
+  }
+
+  // Fallback to rightmost active column if the date wasn't found
+  if (todayCol === -1) {
+    for (var c = headers.length - 1; c >= 0; c--) {
+      if (c === nameCol || c === avgCol) continue;
+      var hasData = false;
+      for (var i = hi + 1; i < rows.length; i++) {
+        var val = (rows[i][c] || "").toString().trim().toUpperCase();
+        if (val.indexOf("X") !== -1 || !isNaN(parseFloat(val))) {
+          hasData = true; break;
+        }
+      }
+      if (hasData) {
+        todayCol = c;
+        currentDailyHeader = headers[c] + " (Auto-fallback to newest data)";
+        break;
+      }
+    }
+  }
+
+  latestScores = {};
+  weeklyRawData = {};
+  var players = [];
+
+  // STEP 2: Find the Player Row & Pull the Intersection
+  PARTICIPANTS.forEach(function(playerName) {
+    
+    var playerRow = -1;
+    // Search the entire sheet structure for this specific player's name
+    for (var r = 0; r < rows.length; r++) {
+      for (var c = 0; c < Math.min(rows[r].length, 5); c++) {
+        if (rows[r][c].toLowerCase().trim() === playerName.toLowerCase()) {
+          playerRow = r;
+          break;
+        }
+      }
+      if (playerRow !== -1) break;
+    }
+
+    if (playerRow === -1) return; // Skip if they aren't written in the sheet
+
+    var pRowData = rows[playerRow];
+
+    // Grab the exact intersection of the Player Row and the Date Column
+    if (todayCol !== -1 && pRowData[todayCol] !== undefined) {
+      var cellVal = pRowData[todayCol].toString().trim().toUpperCase();
+      var tVal;
+      
+      // Look for any variation of an X ("X", "X/6", "7")
+      if (cellVal.indexOf("X") !== -1 || cellVal === "7") {
+        tVal = 7;
+      } else {
+        tVal = parseFloat(cellVal);
+      }
+      
+      // If it's totally blank/text, record 8 (meaning "Hasn't submitted yet")
+      latestScores[playerName] = isNaN(tVal) ? 8 : tVal;
+    } else {
+      latestScores[playerName] = 8;
+    }
+
+    // --- Pull individual score cells from this player's row ---
+    var sc = [];
+    for (var c = 0; c < pRowData.length; c++) {
+      if (c === nameCol || (avgCol !== -1 && c === avgCol)) continue;
+      var rawCell = (pRowData[c] || "").toString().trim().replace(/"/g, "");
+      var v;
+      if (rawCell.toUpperCase().indexOf("X") !== -1) {
+        v = 7;
+      } else {
+        v = parseFloat(rawCell);
+      }
+      if (!isNaN(v) && v >= 1 && v <= 7) sc.push(v);
+    }
+    weeklyRawData[playerName] = sc.slice(-7);
+
+    var streak = 0;
+    for (var k = sc.length - 1; k >= 0; k--) { 
+      if (sc[k] < 8) { streak++; } else { break; } 
+    }
+
+    // Always compute avg from individual scores - works regardless of endpoint format
+    var validScores = sc.filter(function(v){ return v >= 1 && v <= 7; });
+    var avg = 0;
+    if (validScores.length > 0) {
+      avg = Math.round((validScores.reduce(function(a,b){return a+b;},0) / validScores.length) * 100) / 100;
+    } else {
+      // Last resort: read the avg column directly
+      var rawAvg = (pRowData[avgCol] || "").toString().trim().replace(/"/g, "").replace(/,/g, ".");
+      avg = parseFloat(rawAvg) || 0;
+    }
+
+    // DEBUG: store raw row data for first player
+    if (!window._debugFirstRow) {
+      window._debugFirstRow = {name: playerName, raw: pRowData.slice(0,20), sc: sc, validScores: validScores, avgCol: avgCol, nameCol: nameCol};
+    }
+    players.push({name: playerName, avg: avg, streak: streak, scoreCount: validScores.length});
+  });
+
+  // Sort overall players for Weekly leaderboard
+  players.sort(function(a,b){ return a.avg-b.avg; });
+  return players;
+}
+
+function renderLeaderboard(players) {
+  var container = document.getElementById("lb-rows");
+  container.innerHTML = "";
+
+  var best  = players[0].avg;
+  var worst = players[players.length-1].avg;
+  var range = worst - best || 1;
+
+  var medals  = ["🥇","🥈","🥉"];
+  var rkClass = ["gold","silver","bronze"];
+
+  players.forEach(function(p, i) {
+    var rank = i + 1;
+    var cls  = p.avg <= 4 ? "" : p.avg <= 5.5 ? "ok" : "bad";
+    var isMe = currentUser && p.name.toLowerCase() === currentUser.toLowerCase();
+
+    var row = document.createElement("div");
+    row.className = "lb-row" + (rank===1?" first":"");
+
+    var rkEl = document.createElement("div");
+    rkEl.className = "lb-rank" + (rank<=3?" "+rkClass[i]:"");
+    rkEl.innerHTML = rank<=3 ? medals[i] : rank;
+
+    var nmEl = document.createElement("div");
+    nmEl.className = "lb-name" + (isMe?" me":"");
+    var streakStr = "";
+    if (p.streak && p.streak > 0) {
+      streakStr = ' <span class="streak-badge">' + (p.streak >= 7 ? "🔥" : p.streak >= 3 ? "🔥" : "🔥") + p.streak + '</span>';
+    }
+    nmEl.innerHTML = p.name + (isMe ? " ←" : "") + streakStr;
+
+    var avgWrap = document.createElement("div");
+    avgWrap.className = "lb-avg-wrap";
+    avgWrap.innerHTML = '<span class="lb-avg '+cls+'">'+p.avg.toFixed(2)+'</span><span class="lb-avg-lbl">avg/game</span>';
+
+    var sparkWrap = document.createElement("div");
+    sparkWrap.className = "sparkline-wrap";
+    var spScores = weeklyRawData[p.name] || [];
+    sparkWrap.innerHTML = makeSparkline(spScores, cls);
+
+    row.appendChild(rkEl); row.appendChild(nmEl); row.appendChild(avgWrap); row.appendChild(sparkWrap);
+    container.appendChild(row);
+  });
+
+  var now = new Date();
+  document.getElementById("lb-status").style.display = "flex";
+  document.getElementById("lb-note").style.display   = "block";
+  document.getElementById("lb-dot").className = "pulse-dot";
+  document.getElementById("lb-status-txt").textContent = "Live";
+  document.getElementById("lb-updated").textContent = "Updated " + now.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+
+  // Always-visible debug block
+  var dbg = document.createElement("div");
+  dbg.style.cssText = "margin-top:12px;padding:10px;background:#0a0a0b;border:1px solid #333;border-radius:8px;font-size:0.55rem;line-height:1.9;color:#666;word-break:break-all";
+  var d = window._debugFirstRow || {};
+  var proxyNames = ["gviz-direct","corsproxy.io","allorigins","cors-anywhere"];
+  var dbgHtml = "<span style='color:#6aaa64'>proxy:</span> " + (proxyNames[window._debugProxyIndex]||"?") + "<br>";
+  dbgHtml += "<span style='color:#6aaa64'>nameCol:</span> " + (d.nameCol!==undefined?d.nameCol:"?") + " <span style='color:#6aaa64'>avgCol:</span> " + (d.avgCol!==undefined?d.avgCol:"?") + "<br>";
+  if (d.name) {
+    dbgHtml += "<span style='color:#c9b458'>" + d.name + " raw[0-15]:</span><br>";
+    (d.raw||[]).slice(0,16).forEach(function(v,i){ dbgHtml += "["+i+"]<span style='color:#aaa'>"+String(v).substring(0,8)+"</span> "; });
+    dbgHtml += "<br><span style='color:#c9b458'>sc:</span>[" + (d.sc||[]).join(",") + "] <span style='color:#c9b458'>valid:</span>[" + (d.validScores||[]).join(",") + "]";
+  }
+  dbg.innerHTML = dbgHtml;
+  container.appendChild(dbg);
+}
+
+function renderDaily() {
+  var container = document.getElementById("daily-rows");
+  if (!container) return;
+  container.innerHTML = "";
+
+  var players = [];
+  Object.keys(latestScores).forEach(function(n) {
+    players.push({ name: n, score: latestScores[n] });
+  });
+
+  // Sort scores low to high (best to worst). 8s (no submit) go to the bottom.
+  players.sort(function(a, b) { return a.score - b.score; });
+
+  var rank = 1;
+  players.forEach(function(p, i) {
+    var cls  = p.score <= 3 ? "gold" : p.score <= 4 ? "" : p.score <= 5 ? "ok" : "bad";
+    var isMe = currentUser && p.name.toLowerCase() === currentUser.toLowerCase();
+
+    var row = document.createElement("div");
+    row.className = "lb-row" + (rank===1 && p.score < 8 ? " first":"");
+
+    var rkEl = document.createElement("div");
+    rkEl.className = "lb-rank";
+    
+    if (p.score < 8) {
+      if (rank === 1) { rkEl.innerHTML = "🥇"; rkEl.className += " gold"; }
+      else if (rank === 2) { rkEl.innerHTML = "🥈"; rkEl.className += " silver"; }
+      else if (rank === 3) { rkEl.innerHTML = "🥉"; rkEl.className += " bronze"; }
+      else { rkEl.innerHTML = rank; }
+      rank++;
+    } else {
+      rkEl.innerHTML = "-";
+      cls = "bad"; 
+    }
+
+    var nmEl = document.createElement("div");
+    nmEl.className = "lb-name" + (isMe?" me":"");
+    nmEl.textContent = p.name + (isMe ? " ←" : "");
+
+    var scoreWrap = document.createElement("div");
+    scoreWrap.className = "lb-avg-wrap";
+    
+    var scDisplay = p.score === 7 ? "X" : (p.score === 8 ? "-" : p.score);
+    scoreWrap.innerHTML = '<span class="lb-avg '+cls+'">' + scDisplay + '</span><span class="lb-avg-lbl">guesses</span>';
+
+    var emptyWrap = document.createElement("div");
+
+    row.appendChild(rkEl); 
+    row.appendChild(nmEl); 
+    row.appendChild(scoreWrap); 
+    row.appendChild(emptyWrap);
+    
+    container.appendChild(row);
+  });
+
+  // Diagnostic Note: Shows exactly which column it successfully targeted
+  var note = document.createElement("div");
+  note.className = "lb-note";
+  note.innerHTML = "2-Way Lookup Found Column: <br><span style='color:var(--yellow);font-size:0.75rem;'>" + (currentDailyHeader || "None") + "</span>";
+  container.appendChild(note);
+}
+
+function showLbError(msg) {
+  document.getElementById("lb-rows").innerHTML =
+    '<div class="lb-loading" style="color:var(--red)">⚠ ' + msg + '</div>';
+  var dot = document.getElementById("lb-dot");
+  if (dot) { dot.className = "pulse-dot err"; }
+  var txt = document.getElementById("lb-status-txt");
+  if (txt) txt.textContent = "Error";
+  document.getElementById("lb-status").style.display = "flex";
+}
+
+// ════════════════════════════════════════════════
+// SEASON LEADERBOARD
+// ════════════════════════════════════════════════
+function getSeasonGvizUrl() {
+  var cb = new Date().getTime();
+  return "https://docs.google.com/spreadsheets/d/" + SHEET_ID +
+    "/gviz/tq?tqx=out:csv&range=A18:Z200&t=" + cb;
+}
+
+var SEASON_PROXIES = [
+  function(url){ return url; },  // Direct gviz — no proxy needed, works on mobile
+  function(url){ return "https://corsproxy.io/?" + encodeURIComponent(url); },
+  function(url){ return "https://api.allorigins.win/raw?url=" + encodeURIComponent(url); },
+  function(url){ return "https://cors-anywhere.herokuapp.com/" + url; }
+];
+
+function fetchSeason() {
+  var url = SEASON_PROXIES[proxyIndexSn](getSeasonGvizUrl());
+  fetch(url)
+    .then(function(r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.text();
+    })
+    .then(function(csv) {
+      if (!csv || csv.trim() === "") throw new Error("Empty response from sheet.");
+      var cleaned = csv.trim();
+      if (cleaned.charAt(0) === "<") throw new Error("Got HTML — proxy may be blocked.");
+      var players = parseSeasonCSV(cleaned);
+      renderSeason(players);
+      seasonLoaded = true;
+    })
+    .catch(function(err) {
+      if (proxyIndexSn < SEASON_PROXIES.length - 1) {
+        proxyIndexSn++;
+        fetchSeason();
+      } else {
+        proxyIndexSn = 0;
+        showSnError("Could not load season data: " + (err.message || "unknown error"));
+      }
+    });
+}
+
+function parseSeasonCSV(text) {
+  var lines = text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n");
+  var rows = lines.map(function(line){
+    var res=[], cur="", inQ=false;
+    for(var i=0;i<line.length;i++){
+      var c=line[i];
+      if(c==='"'){inQ=!inQ;}
+      else if(c===','&&!inQ){res.push(cur.trim());cur="";}
+      else{cur+=c;}
+    }
+    res.push(cur.trim()); return res;
+  }).filter(function(r){ return r.some(function(c){ return c!==""; }); });
+
+  if (rows.length < 2) throw new Error("No season data found.");
+
+  var hi = 0;
+  for (var i = 0; i < Math.min(rows.length, 5); i++) {
+    var r = rows[i].map(function(h){ return h.toLowerCase().trim(); });
+    if (r.some(function(h){ return h.indexOf("name") !== -1 || h.indexOf("player") !== -1 || h.indexOf("total") !== -1; })) {
+      hi = i; break;
+    }
+  }
+  var headers = rows[hi].map(function(h){ return h.toLowerCase().trim(); });
+
+  var nameCol = 0;
+  for(var c=0;c<headers.length;c++){
+    if(headers[c].indexOf("name")!==-1||headers[c].indexOf("player")!==-1){nameCol=c;break;}
+  }
+
+  var avgCol = -1;
+  for(var c=0;c<headers.length;c++){
+    if(headers[c].indexOf("total")!==-1){avgCol=c;break;}
+  }
+  if(avgCol===-1){
+    for(var c=0;c<headers.length;c++){
+      if(headers[c].indexOf("season")!==-1){avgCol=c;break;}
+    }
+  }
+  if(avgCol===-1){
+    for(var c=0;c<headers.length;c++){
+      if(headers[c].indexOf("avg")!==-1||headers[c].indexOf("aver")!==-1){avgCol=c;break;}
+    }
+  }
+  if(avgCol===-1){
+    for(var i=hi+1;i<rows.length;i++){
+      for(var c=rows[i].length-1;c>=0;c--){
+        if(c===nameCol) continue;
+        if(!isNaN(parseFloat(rows[i][c]))){avgCol=c;break;}
+      }
+      if(avgCol!==-1) break;
+    }
+  }
+  if(avgCol===-1) avgCol = 10; // absolute fallback = col K
+
+  var players = [];
+  for(var i=1;i<rows.length;i++){
+    var row=rows[i];
+    var name=row[nameCol]?row[nameCol].trim():"";
+    var avg=parseFloat(row[avgCol]);
+    if(!name||isNaN(avg)) continue;
+    players.push({name:name, avg:avg});
+  }
+  if(players.length===0) throw new Error("No numeric season data found. Check the K18 range.");
+  players.sort(function(a,b){ return a.avg-b.avg; });
+  return players;
+}
+
+function renderSeason(players) {
+  var container = document.getElementById("sn-rows");
+  container.innerHTML = "";
+
+  var best  = players[0].avg;
+  var worst = players[players.length-1].avg;
+  var range = worst - best || 1;
+
+  var medals  = ["🥇","🥈","🥉"];
+  var rkClass = ["gold","silver","bronze"];
+
+  players.forEach(function(p, i) {
+    var rank = i + 1;
+    var pct  = Math.max(6, Math.round(((worst - p.avg) / range) * 100));
+    var cls  = p.avg <= 4 ? "" : p.avg <= 5.5 ? "ok" : "bad";
+    var isMe = currentUser && p.name.toLowerCase() === currentUser.toLowerCase();
+
+    var row = document.createElement("div");
+    row.className = "lb-row" + (rank===1?" first":"");
+
+    var rkEl = document.createElement("div");
+    rkEl.className = "lb-rank" + (rank<=3?" "+rkClass[i]:"");
+    rkEl.innerHTML = rank<=3 ? medals[i] : rank;
+
+    var nmEl = document.createElement("div");
+    nmEl.className = "lb-name" + (isMe?" me":"");
+    nmEl.textContent = p.name + (isMe ? " ←" : "");
+
+    var avgWrap = document.createElement("div");
+    avgWrap.className = "lb-avg-wrap";
+    avgWrap.innerHTML = '<span class="lb-avg '+cls+'">'+p.avg.toFixed(2)+'</span><span class="lb-avg-lbl">season avg</span>';
+
+    var barWrap = document.createElement("div");
+    barWrap.className = "lb-bar-wrap";
+    barWrap.innerHTML = '<div class="lb-bar-track"><div class="lb-bar-fill '+cls+'" style="width:'+pct+'%"></div></div>';
+
+    row.appendChild(rkEl); row.appendChild(nmEl); row.appendChild(avgWrap); row.appendChild(barWrap);
+    container.appendChild(row);
+  });
+
+  var now = new Date();
+  document.getElementById("sn-status").style.display = "flex";
+  document.getElementById("sn-note").style.display   = "block";
+  document.getElementById("sn-dot").className = "pulse-dot";
+  document.getElementById("sn-status-txt").textContent = "Live";
+  document.getElementById("sn-updated").textContent = "Updated " + now.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+}
+
+function showSnError(msg) {
+  document.getElementById("sn-rows").innerHTML =
+    '<div class="lb-loading" style="color:var(--red)">⚠ ' + msg + '</div>';
+  var dot = document.getElementById("sn-dot");
+  if(dot) dot.className = "pulse-dot err";
+  var txt = document.getElementById("sn-status-txt");
+  if(txt) txt.textContent = "Error";
+  document.getElementById("sn-status").style.display = "flex";
+}
+
+// ════════════════════════════════════════════════
+// ADMIN
+// ════════════════════════════════════════════════
+function goAdminLogin() {
+  document.getElementById("admin-pw-input").value = "";
+  document.getElementById("admin-login-err").textContent = "";
+  showScreen("screen-admin-login");
+  document.getElementById("admin-pw-input").focus();
+}
+
+async function handleAdminLogin() {
+  var pw = document.getElementById("admin-pw-input").value;
+  var err = document.getElementById("admin-login-err");
+  err.textContent = "";
+  if (!pw) { err.textContent = "Enter the admin password."; return; }
+  var btn = document.getElementById("admin-login-btn");
+  btn.disabled = true; btn.textContent = "...";
+  if (pw === ADMIN_PASSWORD) {
+    btn.disabled = false; btn.textContent = "Enter";
+    showAdminPanel();
+  } else {
+    err.textContent = "Incorrect admin password.";
+    btn.disabled = false; btn.textContent = "Enter";
+  }
+}
+
+function showAdminPanel() {
+  showScreen("screen-admin-panel");
+  buildResetList();
+  document.getElementById("admin-succ").textContent = "";
+}
+
+function buildResetList() {
+  var list = document.getElementById("reset-list");
+  list.innerHTML = "";
+  PARTICIPANTS.forEach(function(name) {
+    var row = document.createElement("div");
+    row.className = "reset-row";
+
+    var nm = document.createElement("span");
+    nm.className = "reset-name"; nm.textContent = name;
+
+    var badge = document.createElement("span");
+    badge.id = "badge-"+name;
+    badge.className = "pw-badge " + (getHash(name)?"pw-set":"pw-unset");
+    badge.textContent = getHash(name) ? "Set" : "None";
+
+    var btn = document.createElement("button");
+    btn.className = "btn-reset"; btn.textContent = "Reset"; btn.type = "button";
+    btn.onclick = (function(n){ return function(){ doReset(n); }; })(name);
+
+    row.appendChild(nm); row.appendChild(badge); row.appendChild(btn);
+    list.appendChild(row);
+  });
+}
+
+function doReset(name) {
+  if (!confirm("Reset "+name+"'s password?\n\nThey'll create a new one on next login.")) return;
+  clearHash(name);
+  if (getSession()===name) clearSession();
+  var badge = document.getElementById("badge-"+name);
+  if (badge) { badge.className="pw-badge pw-unset"; badge.textContent="None"; }
+  document.getElementById("admin-succ").textContent = "\u2713 "+name+"'s password has been reset.";
+  showToast(name+"'s password reset!");
+}
+
+function handleAdminLogout() { showScreen("screen-login"); }
+
+// ════════════════════════════════════════════════
+// CONFETTI
+// ════════════════════════════════════════════════
+function launchConfetti() {
+  var canvas = document.getElementById("confetti-canvas");
+  var ctx = canvas.getContext("2d");
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  var pieces = [];
+  var colors = ["#6aaa64","#c9b458","#f5c842","#e05c5c","#b0b8c1","#ffffff"];
+  for (var i = 0; i < 160; i++) {
+    pieces.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * -canvas.height,
+      w: 6 + Math.random() * 8,
+      h: 10 + Math.random() * 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rot: Math.random() * 360,
+      vx: (Math.random() - 0.5) * 3,
+      vy: 2 + Math.random() * 4,
+      vr: (Math.random() - 0.5) * 6
+    });
+  }
+
+  var frame;
+  var startTime = Date.now();
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var elapsed = Date.now() - startTime;
+    var alive = false;
+    pieces.forEach(function(p) {
+      if (p.y < canvas.height + 20) { alive = true; }
+      p.x  += p.vx;
+      p.y  += p.vy;
+      p.rot += p.vr;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      // fade out after 2s
+      ctx.globalAlpha = elapsed < 2000 ? 1 : Math.max(0, 1 - (elapsed - 2000) / 1500);
+      ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+      ctx.restore();
+    });
+    if (alive && elapsed < 4000) {
+      frame = requestAnimationFrame(draw);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      cancelAnimationFrame(frame);
+    }
+  }
+  draw();
+}
+
+// ════════════════════════════════════════════════
+// STREAKS  (computed from weekly CSV data)
+// ════════════════════════════════════════════════
+function computeStreaks(rows, nameCol, scoreCol) {
+  var streaks = {};
+  var byName = {};
+  rows.forEach(function(r) {
+    var n = (r[nameCol]||"").trim();
+    var s = parseFloat(r[scoreCol]);
+    if (!n || isNaN(s)) return;
+    if (!byName[n]) byName[n] = [];
+    byName[n].push(s);
+  });
+  Object.keys(byName).forEach(function(name) {
+    var scores = byName[name];
+    var streak = 0;
+    for (var i = scores.length - 1; i >= 0; i--) {
+      if (scores[i] < 8) { streak++; } else { break; }
+    }
+    streaks[name] = streak;
+    weeklyRawData[name] = scores.slice(-7); 
+  });
+  return streaks;
+}
+
+// ════════════════════════════════════════════════
+// SPARKLINE SVG
+// ════════════════════════════════════════════════
+function makeSparkline(scores, colorClass) {
+  if (!scores || scores.length < 2) {
+    return '<svg width="60" height="28"></svg>';
+  }
+  var W = 60, H = 28, pad = 3;
+  var min = 1, max = 8;
+  var pts = scores.map(function(s, i) {
+    var x = pad + (i / (scores.length - 1)) * (W - pad*2);
+    var y = H - pad - ((s - min) / (max - min)) * (H - pad*2);
+    return x.toFixed(1) + "," + y.toFixed(1);
+  });
+  var color = colorClass === "bad" ? "#e05c5c" : colorClass === "ok" ? "#c9b458" : "#6aaa64";
+  var line = '<polyline points="' + pts.join(" ") + '" fill="none" stroke="' + color + '" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>';
+  var last = pts[pts.length-1].split(",");
+  var dot = '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="2.5" fill="' + color + '"/>';
+  return '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' + line + dot + '</svg>';
+}
+
+// ════════════════════════════════════════════════
+// DEBUG
+// ════════════════════════════════════════════════
+function renderDebug(csv, players) {
+  var el = document.getElementById("debug-content");
+  if (!el) return;
+  var lines = csv.replace(/\r/g,"").split("\n");
+  var proxyNames = ["gviz-direct","corsproxy.io","allorigins","cors-anywhere"];
+  var d = window._debugFirstRow || {};
+  var html = "";
+  html += '<b style="color:var(--green)">Proxy:</b> ' + (proxyNames[window._debugProxyIndex] || "?") + '<br>';
+  html += '<b style="color:var(--green)">CSV rows:</b> ' + lines.length + '  <b>cols:</b> ' + (lines[1]||"").split(",").length + '<br>';
+  html += '<b style="color:var(--green)">nameCol:</b> ' + (d.nameCol !== undefined ? d.nameCol : "?") + '  <b>avgCol:</b> ' + (d.avgCol !== undefined ? d.avgCol : "?") + '<br><br>';
+  html += '<b style="color:var(--yellow)">Header row:</b><br><span style="color:var(--muted)">' + (lines[0]||"").substring(0,300).replace(/</g,"&lt;") + '</span><br><br>';
+  if (d.name) {
+    html += '<b style="color:var(--yellow)">First player (' + d.name + ') raw cells:</b><br>';
+    (d.raw||[]).forEach(function(cell,i){
+      html += '<span style="color:#555">['+i+']</span><span style="color:var(--text)">'+String(cell).replace(/</g,"&lt;")+'</span> ';
+    });
+    html += '<br><br>';
+    html += '<b style="color:var(--yellow)">sc (parsed scores):</b> [' + (d.sc||[]).join(",") + ']<br>';
+    html += '<b style="color:var(--yellow)">validScores (1-7):</b> [' + (d.validScores||[]).join(",") + ']<br><br>';
+  }
+  html += '<b style="color:var(--yellow)">All players:</b><br>';
+  players.forEach(function(p) {
+    html += '<span style="color:var(--green)">' + p.name + '</span> avg=<b style="color:' + (p.avg>0?'var(--green)':'var(--red)') + '">' + p.avg + '</b> n=' + (p.scoreCount||0) + '<br>';
+  });
+  el.innerHTML = html;
+}
+
+// ════════════════════════════════════════════════
+// WIRE UP
+// ════════════════════════════════════════════════
+document.getElementById("login-btn").addEventListener("click", handleLogin);
+document.getElementById("logout-btn").addEventListener("click", handleLogout);
+document.getElementById("pw-input").addEventListener("keydown", function(e){ if(e.key==="Enter") handleLogin(); });
+document.getElementById("go-admin-btn").addEventListener("click", goAdminLogin);
+document.getElementById("admin-back-btn").addEventListener("click", function(){ showScreen("screen-login"); });
+document.getElementById("admin-login-btn").addEventListener("click", handleAdminLogin);
+document.getElementById("admin-pw-input").addEventListener("keydown", function(e){ if(e.key==="Enter") handleAdminLogin(); });
+document.getElementById("admin-logout-btn").addEventListener("click", handleAdminLogout);
+
+// ════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════
+buildPlayerGrid();
+updateDate();
+setInterval(updateDate, 60000);
+
+var saved = getSession();
+if (saved && PARTICIPANTS.indexOf(saved) !== -1) {
+  enterApp(saved);
+}
+
+// ════════════════════════════════════════════════
+// SERVICE WORKER REGISTRATION (PWA)
+// ════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').catch(function(e) {
+      console.log('SW registration failed:', e);
+    });
+    // Clear caches on each load so stale data never blocks fresh sheet data
+    caches.keys().then(function(names) {
+      names.forEach(function(name) { caches.delete(name); });
+    });
+  });
+}
+</script>
+</body>
+</html>

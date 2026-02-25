@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CSV Test</title>
+<style>
+body{background:#111;color:#eee;font-family:monospace;padding:16px;font-size:12px;}
+pre{background:#000;padding:12px;border-radius:8px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;}
+button{background:#6aaa64;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:14px;cursor:pointer;margin:4px;}
+.label{color:#c9b458;margin-top:12px;font-weight:bold;}
+</style>
+</head>
+<body>
+<h2 style="color:#6aaa64">CSV Diagnostics</h2>
+<button onclick="testAll()">Run All Tests</button>
+<div id="out"></div>
+<script>
+var SHEET_ID = "1ygSsT4V7-3s9g6PDiqw2G_aBwVyx6k2OLJmfV0j5QBo";
+var PUB_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR1FYygrFcFDKjGlPWq8kEklo0H3OabddFOtqFXswlT8AyomfCNEh_VQ8Nz2xckEr0f788TFZLcWE_e/pub?output=csv";
+
+var URLS = [
+  {label: "1. Published CSV (direct)", url: PUB_URL + "&t=" + Date.now()},
+  {label: "2. gviz direct",            url: "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?tqx=out:csv&t=" + Date.now()},
+  {label: "3. corsproxy + export",     url: "https://corsproxy.io/?" + encodeURIComponent("https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/export?format=csv&t=" + Date.now())},
+  {label: "4. allorigins + export",    url: "https://api.allorigins.win/raw?url=" + encodeURIComponent("https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/export?format=csv&t=" + Date.now())}
+];
+
+var out = document.getElementById("out");
+
+function show(label, content, color) {
+  var d = document.createElement("div");
+  d.className = "label";
+  d.textContent = label;
+  out.appendChild(d);
+  var pre = document.createElement("pre");
+  pre.style.color = color || "#eee";
+  pre.textContent = content;
+  out.appendChild(pre);
+}
+
+async function testUrl(item) {
+  show(item.label + " — fetching...", "", "#666");
+  var label_el = out.lastElementChild.previousSibling;
+  var pre_el = out.lastElementChild;
+  try {
+    var start = Date.now();
+    var r = await fetch(item.url);
+    var ms = Date.now() - start;
+    if (!r.ok) {
+      label_el.textContent = item.label + " — HTTP " + r.status + " (" + ms + "ms)";
+      pre_el.style.color = "#e05c5c";
+      pre_el.textContent = "FAILED: HTTP " + r.status;
+      return;
+    }
+    var text = await r.text();
+    var trimmed = text.trim();
+    label_el.textContent = item.label + " — OK (" + ms + "ms, " + trimmed.length + " bytes)";
+    
+    if (!trimmed || trimmed.charAt(0) === "<") {
+      pre_el.style.color = "#e05c5c";
+      pre_el.textContent = "FAILED: Got HTML or empty\n" + trimmed.substring(0, 200);
+      return;
+    }
+    
+    // Show first 3 rows
+    var lines = trimmed.split("\n");
+    pre_el.style.color = "#6aaa64";
+    var preview = "ROWS: " + lines.length + "\n\n";
+    for (var i = 0; i < Math.min(4, lines.length); i++) {
+      preview += "Row " + i + ": " + lines[i].substring(0, 200) + "\n";
+    }
+    // Also check if Adam/Tim appear
+    var hasPlayers = trimmed.toLowerCase().indexOf("adam") !== -1 || trimmed.toLowerCase().indexOf("tim") !== -1;
+    preview += "\nHas player names: " + hasPlayers;
+    // Find any row with numbers
+    var numRows = lines.filter(function(l){ return /,\d+[,\n]/.test(l); }).length;
+    preview += "\nRows with numbers: " + numRows;
+    pre_el.textContent = preview;
+    
+  } catch(e) {
+    label_el.textContent = item.label + " — ERROR";
+    pre_el.style.color = "#e05c5c";
+    pre_el.textContent = "ERROR: " + e.message;
+  }
+}
+
+async function testAll() {
+  out.innerHTML = "";
+  for (var i = 0; i < URLS.length; i++) {
+    await testUrl(URLS[i]);
+  }
+  show("Done!", "Scroll up to see results.", "#c9b458");
+}
+</script>
+</body>
+</html>
