@@ -502,12 +502,7 @@ body {
   <div class="card">
     <div class="card-title">Select Your Name</div>
     <div class="player-grid" id="player-grid"></div>
-    <div class="form-group">
-      <label for="pw-input">Password</label>
-      <input type="password" id="pw-input" placeholder="Enter your password" autocomplete="off" />
-    </div>
     <p class="login-hint" id="login-hint">Select your name above to get started.</p>
-    <button class="btn-primary" id="login-btn" type="button" disabled>Enter</button>
     <div class="err" id="login-err"></div>
   </div>
 
@@ -767,17 +762,8 @@ function buildPlayerGrid() {
 
 function selectPlayer(name, btn) {
   selectedPlayer = name;
-  document.querySelectorAll(".player-btn").forEach(function(b){ b.classList.remove("selected"); });
-  btn.classList.add("selected");
-  document.getElementById("pw-input").value = "";
-  document.getElementById("login-err").textContent = "";
-  var lb = document.getElementById("login-btn");
-  lb.disabled = false; lb.textContent = "Enter";
-  var hint = document.getElementById("login-hint");
-  hint.innerHTML = getHash(name)
-    ? 'Enter your password for <span class="hi">'+name+'</span>.'
-    : 'First time? Create a password for <span class="hi">'+name+'</span>.';
-  document.getElementById("pw-input").focus();
+  saveSession(name);
+  enterApp(name);
 }
 
 async function handleLogin() {
@@ -812,12 +798,6 @@ function handleLogout() {
   currentUser = null; selectedPlayer = null;
   clearInterval(refreshTimer);
   seasonLoaded = false;
-  document.querySelectorAll(".player-btn").forEach(function(b){ b.classList.remove("selected"); });
-  document.getElementById("pw-input").value = "";
-  document.getElementById("login-err").textContent = "";
-  document.getElementById("login-hint").textContent = "Select your name above to get started.";
-  var lb = document.getElementById("login-btn");
-  lb.disabled = true; lb.textContent = "Enter";
   showScreen("screen-login");
 }
 
@@ -1542,9 +1522,7 @@ function makeSparkline(scores, colorClass) {
 // ════════════════════════════════════════════════
 // WIRE UP
 // ════════════════════════════════════════════════
-document.getElementById("login-btn").addEventListener("click", handleLogin);
 document.getElementById("logout-btn").addEventListener("click", handleLogout);
-document.getElementById("pw-input").addEventListener("keydown", function(e){ if(e.key==="Enter") handleLogin(); });
 document.getElementById("go-admin-btn").addEventListener("click", goAdminLogin);
 document.getElementById("admin-back-btn").addEventListener("click", function(){ showScreen("screen-login"); });
 document.getElementById("admin-login-btn").addEventListener("click", handleAdminLogin);
