@@ -922,15 +922,22 @@ function parseCSV(text) {
   }
   if (nameCol === -1) nameCol = 0;
 
-  // avgCol: only set if we actually find an avg/average header — never guess
+  // avgCol: look for "Average for week" column (your column J)
+  // Priority: exact phrase > week+avg > any average header
   var avgCol = -1;
   for(var c=0;c<headers.length;c++){
-    if(headers[c].indexOf("week")!==-1&&headers[c].indexOf("avg")!==-1){avgCol=c;break;}
-    if(headers[c].indexOf("week")!==-1&&headers[c].indexOf("aver")!==-1){avgCol=c;break;}
+    var h = headers[c];
+    if(h.indexOf("average for week")!==-1||h.indexOf("avg for week")!==-1){avgCol=c;break;}
   }
   if(avgCol===-1){
     for(var c=0;c<headers.length;c++){
-      if(headers[c].indexOf("aver")!==-1){avgCol=c;break;}
+      var h = headers[c];
+      if(h.indexOf("week")!==-1&&(h.indexOf("avg")!==-1||h.indexOf("aver")!==-1)){avgCol=c;break;}
+    }
+  }
+  if(avgCol===-1){
+    for(var c=0;c<headers.length;c++){
+      if(headers[c].indexOf("aver")!==-1||headers[c].indexOf("avg")!==-1){avgCol=c;break;}
     }
   }
 
@@ -1024,7 +1031,7 @@ function parseCSV(text) {
       latestScores[playerName] = 8;
     }
 
-    // --- Pull individual score cells from this player's row ---
+    // --- Pull individual score cells from this player's row (for sparkline + streak) ---
     var sc = [];
     for (var c = 0; c < pRowData.length; c++) {
       if (c === nameCol || (avgCol !== -1 && c === avgCol)) continue;
@@ -1037,25 +1044,34 @@ function parseCSV(text) {
       }
       if (!isNaN(v) && v >= 1 && v <= 7) sc.push(v);
     }
-    weeklyRawData[playerName] = sc.slice(-7);
+    var weeklyScores = sc.slice(-7);
+    weeklyRawData[playerName] = weeklyScores;
 
     var streak = 0;
-    for (var k = sc.length - 1; k >= 0; k--) { 
-      if (sc[k] < 8) { streak++; } else { break; } 
+    for (var k = sc.length - 1; k >= 0; k--) {
+      if (sc[k] < 8) { streak++; } else { break; }
     }
 
-    // Always compute avg from individual scores - works regardless of endpoint format
-    var validScores = sc.filter(function(v){ return v >= 1 && v <= 7; });
+    // ALWAYS read avg directly from the "Average for week" column (col J).
+    // Since the sheet is sorted frequently, we look up the column by header name
+    // every parse, so the position never matters — only the header label does.
     var avg = 0;
-    if (validScores.length > 0) {
-      avg = Math.round((validScores.reduce(function(a,b){return a+b;},0) / validScores.length) * 100) / 100;
-    } else {
-      // Last resort: read the avg column directly
+    if (avgCol !== -1 && pRowData[avgCol] !== undefined) {
       var rawAvg = (pRowData[avgCol] || "").toString().trim().replace(/"/g, "").replace(/,/g, ".");
-      avg = parseFloat(rawAvg) || 0;
+      var parsedAvg = parseFloat(rawAvg);
+      if (!isNaN(parsedAvg)) {
+        avg = Math.round(parsedAvg * 100) / 100;
+      }
+    }
+    // Fallback: compute from this week's scores if column was blank/missing
+    if (avg === 0 && weeklyScores.length > 0) {
+      var validFb = weeklyScores.filter(function(v){ return v >= 1 && v <= 7; });
+      if (validFb.length > 0) {
+        avg = Math.round((validFb.reduce(function(a,b){return a+b;},0) / validFb.length) * 100) / 100;
+      }
     }
 
-    players.push({name: playerName, avg: avg, streak: streak, scoreCount: validScores.length});
+    players.push({name: playerName, avg: avg, streak: streak, scoreCount: sc.length});
   });
 
   // Sort overall players for Weekly leaderboard
