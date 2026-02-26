@@ -1091,18 +1091,15 @@ function parseCSV(text) {
       if (sc[k] < 8) { streak++; } else { break; } 
     }
 
-    // Read avg directly from the sheet's own Average column — most accurate
+    // Always compute avg from individual scores - works regardless of endpoint format
+    var validScores = sc.filter(function(v){ return v >= 1 && v <= 7; });
     var avg = 0;
-    if (avgCol !== -1) {
+    if (validScores.length > 0) {
+      avg = Math.round((validScores.reduce(function(a,b){return a+b;},0) / validScores.length) * 100) / 100;
+    } else {
+      // Last resort: read the avg column directly
       var rawAvg = (pRowData[avgCol] || "").toString().trim().replace(/"/g, "").replace(/,/g, ".");
       avg = parseFloat(rawAvg) || 0;
-    }
-    // Fallback: compute from daily scores if avg column missing or zero
-    if (avg === 0 && sc.length > 0) {
-      var validScores = sc.filter(function(v){ return v >= 1 && v <= 6; });
-      if (validScores.length > 0) {
-        avg = Math.round((validScores.reduce(function(a,b){return a+b;},0) / validScores.length) * 100) / 100;
-      }
     }
 
     // DEBUG: store raw row data for first player
@@ -1649,14 +1646,15 @@ if (saved && PARTICIPANTS.indexOf(saved) !== -1) {
 // ════════════════════════════════════════════════
 // SERVICE WORKER REGISTRATION (PWA)
 // ════════════════════════════════════════════════
-// Unregister any existing service workers and clear all caches
-// so phones always get fresh data and fresh code
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(function(regs) {
-    regs.forEach(function(reg) { reg.unregister(); });
-  });
-  caches.keys().then(function(names) {
-    names.forEach(function(name) { caches.delete(name); });
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').catch(function(e) {
+      console.log('SW registration failed:', e);
+    });
+    // Clear caches on each load so stale data never blocks fresh sheet data
+    caches.keys().then(function(names) {
+      names.forEach(function(name) { caches.delete(name); });
+    });
   });
 }
 </script>
